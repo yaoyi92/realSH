@@ -6,7 +6,7 @@ l = Symbol('l', integer=True)
 m = Symbol('m', integer=True)
 x = Symbol('x')
 LANGUAGE="Fortran" # "c++" "Fortran"
-DO_DERIV=True
+DO_DERIV=False
 PHASE="aims" # "aims" "Condon–Shortley" not yet
 
 def Klm(l,m):
@@ -100,7 +100,7 @@ def BuildSHEvalCode(lmax):
         s_output += "real*8, intent(out) :: pSH(" + str((lmax+1)*(lmax+1)) + ")\n"
         if DO_DERIV:
             s_output += "real*8, intent(out) :: pdSHdtheta(" + str((lmax+1)*(lmax+1)) + ")\n"
-            s_output += "real*8, intent(out) :: pdSHdphi_theta(" + str((lmax+1)*(lmax+1)) + ")\n"
+            s_output += "real*8, intent(out) :: pdSHdphi_sintheta(" + str((lmax+1)*(lmax+1)) + ")\n"
     else:
         if DO_DERIV:
             s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
@@ -112,6 +112,7 @@ def BuildSHEvalCode(lmax):
             s_output += "real*8 :: fC0,fC1,fS0,fS1,fTmpA,fTmpB,fTmpC\n"
             s_output += "real*8 :: fC0_1,fC1_1,fS0_1,fS1_1,fTmpA_1,fTmpB_1,fTmpC_1\n"
             s_output += "real*8 :: fTmpA_2,fTmpB_2,fTmpC_2\n"
+            s_output += "real*8 :: fZ2 \n"
         else:
             s_output += "double fX, fY, fZ;\n"
             s_output += "double fC0,fC1,fS0,fS1,fTmpA,fTmpB,fTmpC;\n"
@@ -123,7 +124,6 @@ def BuildSHEvalCode(lmax):
 
     if (lmax >= 2):
         if LANGUAGE == "Fortran":
-            s_output += "real*8 :: fZ2 \n"
             s_output += "fZ2 = fZ*fZ;\n\n"
         else:
             s_output += "double fZ2 = fZ*fZ;\n\n"
@@ -354,9 +354,9 @@ def BuildSHEvalinterface(l_max):
     s_output_interface = ""
     if LANGUAGE == "Fortran":
         if DO_DERIV:
-            s_output_interface += "subroutine SHEval(lmax,sintheta,costheta,sinphi,cosphi,pSH) \n"
-        else:
             s_output_interface += "subroutine SHEval(lmax,sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta) \n"
+        else:
+            s_output_interface += "subroutine SHEval(lmax,sintheta,costheta,sinphi,cosphi,pSH) \n"
         s_output_interface += "implicit none \n"
         s_output_interface += "integer, intent(in) :: lmax \n"
         s_output_interface += "real*8, intent(in) :: sintheta,costheta,sinphi,cosphi \n"
