@@ -5,8 +5,8 @@ from sympy import Symbol
 l = Symbol('l', integer=True)
 m = Symbol('m', integer=True)
 x = Symbol('x')
-LANGUAGE="c++" # "c++" "Fortran"
-DO_DERIV=False
+LANGUAGE="Fortran" # "c++" "Fortran"
+DO_DERIV=True
 PHASE="aims" # "aims" "Condon–Shortley" not yet
 
 def Klm(l,m):
@@ -31,11 +31,20 @@ def sAssignDeriv(sVar, sRHS):
     else:
         return ""
 def sSHIndex(idx):
-    return "pSH[" + str(idx) + "]"
+    if LANGUAGE=="Fortran":
+        return "pSH(" + str(idx+1) + ")"
+    else:
+        return "pSH[" + str(idx) + "]"
 def sdSHdphi_sinthetaIndex(idx):
-    return "pdSHdphi_sintheta[" + str(idx) + "]"
+    if LANGUAGE=="Fortran":
+        return "pdSHdphi_sintheta(" + str(idx+1) + ")"
+    else:
+        return "pdSHdphi_sintheta[" + str(idx) + "]"
 def sdSHdthetaIndex(idx):
-    return "pdSHdtheta[" + str(idx) + "]"
+    if LANGUAGE=="Fortran":
+        return "pdSHdtheta(" + str(idx+1) + ")"
+    else:
+        return "pdSHdtheta[" + str(idx) + "]"
 
 def sRuleA(m,fVal):
     return sConst((Pmm(m)*Klm(m,m)*fVal))
@@ -73,32 +82,63 @@ def sCreateSinReccur(sCL,sSL):
 def sCreateCosReccur(sCL,sSL):
     return sSub(sMul("fX",sCL),sMul("fY",sSL))
 
+def comment():
+    if LANGUAGE == "Fortran":
+        return "!"
+    else:
+        return "//"
+
 def BuildSHEvalCode(lmax):
     s_output = ""
-    if DO_DERIV:
-        s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
+    if LANGUAGE == "Fortran":
+        if DO_DERIV:
+            s_output += "subroutine SHEval" + str(lmax) + "(sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta)\n"
+        else:
+            s_output += "subroutine SHEval" + str(lmax) + "(sintheta,costheta,sinphi,cosphi,pSH)\n"
+        s_output += "implicit none\n"
+        s_output += "real*8, intent(in) :: sintheta, costheta, sinphi, cosphi\n"
+        s_output += "real*8, intent(out) :: pSH(" + str((lmax+1)*(lmax+1)) + ")\n"
+        if DO_DERIV:
+            s_output += "real*8, intent(out) :: pdSHdtheta(" + str((lmax+1)*(lmax+1)) + ")\n"
+            s_output += "real*8, intent(out) :: pdSHdphi_theta(" + str((lmax+1)*(lmax+1)) + ")\n"
     else:
-        s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH)\n{\n"
+        if DO_DERIV:
+            s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
+        else:
+            s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH)\n{\n"
     if (lmax > 0):
-        s_output += "double fX, fY, fZ;\n"
-        s_output += "double fC0,fC1,fS0,fS1,fTmpA,fTmpB,fTmpC;\n"
-        s_output += "double fC0_1,fC1_1,fS0_1,fS1_1,fTmpA_1,fTmpB_1,fTmpC_1;\n"
-        s_output += "double fTmpA_2,fTmpB_2,fTmpC_2;\n"
+        if LANGUAGE == "Fortran":
+            s_output += "real*8 :: fX, fY, fZ\n"
+            s_output += "real*8 :: fC0,fC1,fS0,fS1,fTmpA,fTmpB,fTmpC\n"
+            s_output += "real*8 :: fC0_1,fC1_1,fS0_1,fS1_1,fTmpA_1,fTmpB_1,fTmpC_1\n"
+            s_output += "real*8 :: fTmpA_2,fTmpB_2,fTmpC_2\n"
+        else:
+            s_output += "double fX, fY, fZ;\n"
+            s_output += "double fC0,fC1,fS0,fS1,fTmpA,fTmpB,fTmpC;\n"
+            s_output += "double fC0_1,fC1_1,fS0_1,fS1_1,fTmpA_1,fTmpB_1,fTmpC_1;\n"
+            s_output += "double fTmpA_2,fTmpB_2,fTmpC_2;\n"
         s_output += "fX = sintheta * cosphi;\n"
         s_output += "fY = sintheta * sinphi;\n"
         s_output += "fZ = costheta;\n"
 
     if (lmax >= 2):
-        s_output += "double fZ2 = fZ*fZ;\n\n"
+        if LANGUAGE == "Fortran":
+            s_output += "real*8 :: fZ2 \n"
+            s_output += "fZ2 = fZ*fZ;\n\n"
+        else:
+            s_output += "double fZ2 = fZ*fZ;\n\n"
     else:
         s_output += "\n"
 
-    s_output += "\n// m = 0 \n"
+    s_output += "\n"+comment()+"m = 0 \n"
     s_output += sAssign(sSHIndex(0),sConst(Klm(0,0))) + ";\n"
     s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(0),sConst(0))
     s_output += sAssignDeriv(sdSHdthetaIndex(0),sConst(0))
     if (lmax == 0):
-        s_output += "}\n\n"
+        if LANGUAGE == "Fortran":
+            s_output += "end subroutine\n\n"
+        else:
+            s_output += "}\n\n"
         return s_output
     m = 0
     l = 1
@@ -122,7 +162,7 @@ def BuildSHEvalCode(lmax):
         s_output += sAssign(sSHIndex(idx), sRuleC(l,m,sPm1,sPm2)) + ";\n"
         s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idx),sConst(0))
 
-    s_output += "\n// m = 1 \n"
+    s_output += "\n"+comment()+ "m = 1 \n"
     if DO_DERIV:
         s_output += "fC0_1 = cosphi;\nfS0_1 = sinphi;\n"
     s_output += "fC0 = fX;\nfS0 = fY;\n"
@@ -268,7 +308,7 @@ def BuildSHEvalCode(lmax):
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul("-"+sPrev_theta[idxP%3],sS_forderiv[idxSC&1]))
             else:
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul(sPrev_theta[idxP%3],sS_forderiv[idxSC&1]))
-        s_output += "\n// m = "+str(m+1)+ "\n"
+        s_output += "\n"+comment()+ "m = "+str(m+1)+ "\n"
         if DO_DERIV:
             s_output += sC_forderiv[(idxSC+1)&1] + " = " + sCreateCosReccur(sC_forderiv[idxSC&1],sS_forderiv[idxSC&1]) + ";\n"
             s_output += sS_forderiv[(idxSC+1)&1] + " = " + sCreateSinReccur(sC_forderiv[idxSC&1],sS_forderiv[idxSC&1]) + ";\n"
@@ -304,27 +344,61 @@ def BuildSHEvalCode(lmax):
         s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul("-"+sPrev_theta[idxP],sS_forderiv[idxSC&1]))
     else:
         s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul(sPrev_theta[idxP],sS_forderiv[idxSC&1]))
-    s_output += "}\n\n"
+    if LANGUAGE == "Fortran":
+        s_output += "end subroutine\n\n"
+    else:
+        s_output += "}\n\n"
     return s_output
 
 def BuildSHEvalinterface(l_max):
     s_output_interface = ""
-    if DO_DERIV:
-        s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
+    if LANGUAGE == "Fortran":
+        if DO_DERIV:
+            s_output_interface += "subroutine SHEval(lmax,sintheta,costheta,sinphi,cosphi,pSH) \n"
+        else:
+            s_output_interface += "subroutine SHEval(lmax,sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta) \n"
+        s_output_interface += "implicit none \n"
+        s_output_interface += "integer, intent(in) :: lmax \n"
+        s_output_interface += "real*8, intent(in) :: sintheta,costheta,sinphi,cosphi \n"
+        s_output_interface += "real*8, intent(inout) :: pSH((lmax+1)*(lmax+1)) \n"
+        if DO_DERIV:
+            s_output_interface += "real*8, intent(inout) :: pdSHdtheta((lmax+1)*(lmax+1)) \n"
+            s_output_interface += "real*8, intent(inout) :: pdSHdphi_sintheta((lmax+1)*(lmax+1)) \n"
     else:
-        s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH) {\n"
+        if DO_DERIV:
+            s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
+        else:
+            s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH) {\n"
     for i in range(l_max+1):
         if (i == 0):
-            s_output_interface += "if (lmax == 0)  { \n"
+            if LANGUAGE == "Fortran":
+                s_output_interface += "if (lmax == 0)  then \n"
+            else:
+                s_output_interface += "if (lmax == 0)  { \n"
         else:
-            s_output_interface += "} else if (lmax == " + str(i) + ")  { \n"
-        if DO_DERIV:
-            s_output_interface += "SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH, pdSHdtheta, pdSHdphi_sintheta); \n"
+            if LANGUAGE == "Fortran":
+                s_output_interface += "else if (lmax == " + str(i) + ")  then \n"
+            else:
+                s_output_interface += "} else if (lmax == " + str(i) + ")  { \n"
+        if LANGUAGE == "Fortran":
+            if DO_DERIV:
+                s_output_interface += "call SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH, pdSHdtheta, pdSHdphi_sintheta) \n"
+            else:
+                s_output_interface += "call SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH) \n"
         else:
-            s_output_interface += "SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH); \n"
+            if DO_DERIV:
+                s_output_interface += "SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH, pdSHdtheta, pdSHdphi_sintheta); \n"
+            else:
+                s_output_interface += "SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH); \n"
         if (i==l_max):
-            s_output_interface += "}\n"
-    s_output_interface += "}\n"
+            if LANGUAGE == "Fortran":
+                s_output_interface += "end if\n"
+            else:
+                s_output_interface += "}\n"
+    if LANGUAGE == "Fortran":
+        s_output_interface += "end subroutine\n\n"
+    else:
+        s_output_interface += "}\n"
     return s_output_interface
 
 def BuildSHEvalall(l_max):
@@ -334,5 +408,5 @@ def BuildSHEvalall(l_max):
     s_output_all += BuildSHEvalinterface(l_max)
     return s_output_all
 
-print(BuildSHEvalall(20))
+print(BuildSHEvalall(3))
 
