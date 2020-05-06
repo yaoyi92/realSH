@@ -6,7 +6,7 @@ l = Symbol('l', integer=True)
 m = Symbol('m', integer=True)
 x = Symbol('x')
 LANGUAGE="Fortran" # "c++" "Fortran"
-DO_DERIV=False
+DO_DERIV=True
 PHASE="aims" # "aims" "Condon–Shortley" not yet
 
 def Klm(l,m):
@@ -16,7 +16,10 @@ def Pmm(m):
 
 def sConst(d):
     precision = 20
-    return str(N(d,precision))
+    if LANGUAGE == "Fortran":
+        return str(N(d,precision))+"d0"
+    else:
+        return str(N(d,precision))
 def sMul(s1,s2):
     return s1 + "*" + s2
 def sAdd(s1,s2):
@@ -92,7 +95,7 @@ def BuildSHEvalCode(lmax):
     s_output = ""
     if LANGUAGE == "Fortran":
         if DO_DERIV:
-            s_output += "subroutine SHEval" + str(lmax) + "(sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta)\n"
+            s_output += "subroutine SHEvalderiv" + str(lmax) + "(sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta)\n"
         else:
             s_output += "subroutine SHEval" + str(lmax) + "(sintheta,costheta,sinphi,cosphi,pSH)\n"
         s_output += "implicit none\n"
@@ -329,6 +332,8 @@ def BuildSHEvalCode(lmax):
     if DO_DERIV:
         s_output += sPrev_phi[idxP] + " = " + sMul(sConst(m),sPrev[idxP]) + ";\n"
         s_output += sPrev_theta[idxP] + " = " + sRuleDeriv(l,m,sPrev[idxP%3],sPrev[(idxP-1)%3]) + ";\n"
+        if m == 1:
+            s_output += sAssignDeriv(sdSHdthetaIndex(idxC-1),sRuleDeriv_1(l,sPrev[idxP]))
     s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP],sC[idxSC&1])) + ";\n"
     if (m%2 == 1) and (PHASE=="aims"):
         s_output += sAssign(sSHIndex(idxS),sMul("-"+sPrev[idxP],sS[idxSC&1])) + ";\n"
@@ -354,7 +359,7 @@ def BuildSHEvalinterface(l_max):
     s_output_interface = ""
     if LANGUAGE == "Fortran":
         if DO_DERIV:
-            s_output_interface += "subroutine SHEval(lmax,sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta) \n"
+            s_output_interface += "subroutine SHEvalderiv(lmax,sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta) \n"
         else:
             s_output_interface += "subroutine SHEval(lmax,sintheta,costheta,sinphi,cosphi,pSH) \n"
         s_output_interface += "implicit none \n"
@@ -382,7 +387,7 @@ def BuildSHEvalinterface(l_max):
                 s_output_interface += "} else if (lmax == " + str(i) + ")  { \n"
         if LANGUAGE == "Fortran":
             if DO_DERIV:
-                s_output_interface += "call SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH, pdSHdtheta, pdSHdphi_sintheta) \n"
+                s_output_interface += "call SHEvalderiv" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH, pdSHdtheta, pdSHdphi_sintheta) \n"
             else:
                 s_output_interface += "call SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH) \n"
         else:
@@ -408,5 +413,5 @@ def BuildSHEvalall(l_max):
     s_output_all += BuildSHEvalinterface(l_max)
     return s_output_all
 
-print(BuildSHEvalall(3))
+print(BuildSHEvalall(20))
 
