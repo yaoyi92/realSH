@@ -5,9 +5,12 @@ from sympy import Symbol
 l = Symbol('l', integer=True)
 m = Symbol('m', integer=True)
 x = Symbol('x')
+######
+PRECISION="double" # "single" "double" "quadruple"
 LANGUAGE="Fortran" # "c++" "Fortran"
 DO_DERIV=True
-PHASE="aims" # "aims" "Condon–Shortley" not yet
+PHASE="Condon–Shortley" # "aims" "Condon–Shortley" None
+######
 
 def Klm(l,m):
     return sqrt((2*l+1)*factorial(l-abs(m))/(4*pi*factorial(l+abs(m))))
@@ -193,18 +196,27 @@ def BuildSHEvalCode(lmax):
             s_output += sPrev_theta[idxP] + " = " + sRuleDeriv(l,m,sPrev[idxP],sPrev[(idxP-1)%3]) + ";\n"
             if m == 1:
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxC-1),sRuleDeriv_1(l,sPrev[idxP]))
-        s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP],sC[idxSC&1])) + ";\n"
-        if (m%2 == 1) and (PHASE=="aims"):
+        if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+            s_output += sAssign(sSHIndex(idxC),sMul("-"+sPrev[idxP],sC[idxSC&1])) + ";\n"
+        else:
+            s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP],sC[idxSC&1])) + ";\n"
+        if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
             s_output += sAssign(sSHIndex(idxS),sMul("-"+sPrev[idxP],sS[idxSC&1])) + ";\n"
         else:
             s_output += sAssign(sSHIndex(idxS),sMul(sPrev[idxP],sS[idxSC&1])) + ";\n"
-        s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP],sS_forderiv[idxSC&1]))
-        if (m%2 == 1) and (PHASE=="aims"):
+        if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+            s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul(sPrev_phi[idxP],sS_forderiv[idxSC&1]))
+        else:
+            s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP],sS_forderiv[idxSC&1]))
+        if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
             s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul("-"+sPrev_phi[idxP],sC_forderiv[idxSC&1]))
         else:
             s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul(sPrev_phi[idxP],sC_forderiv[idxSC&1]))
-        s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP],sC_forderiv[idxSC&1]))
-        if (m%2 == 1) and (PHASE=="aims"):
+        if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+            s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul("-"+sPrev_theta[idxP],sC_forderiv[idxSC&1]))
+        else:
+            s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP],sC_forderiv[idxSC&1]))
+        if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
             s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul("-"+sPrev_theta[idxP],sS_forderiv[idxSC&1]))
         else:
             s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul(sPrev_theta[idxP],sS_forderiv[idxSC&1]))
@@ -219,18 +231,27 @@ def BuildSHEvalCode(lmax):
                 s_output += sPrev_theta[idxP] + " = " + sRuleDeriv(l,m,sPrev[idxP],sPrev[(idxP-1)%3]) + ";\n"
                 if m == 1:
                     s_output += sAssignDeriv(sdSHdthetaIndex(idxC-1),sRuleDeriv_1(l,sPrev[idxP]))
-            s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP],sC[idxSC&1])) + ";\n"
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssign(sSHIndex(idxC),sMul("-"+sPrev[idxP],sC[idxSC&1])) + ";\n"
+            else:
+                s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP],sC[idxSC&1])) + ";\n"
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssign(sSHIndex(idxS),sMul("-"+sPrev[idxP],sS[idxSC&1])) + ";\n"
             else:
                 s_output += sAssign(sSHIndex(idxS),sMul(sPrev[idxP],sS[idxSC&1])) + ";\n"
-            s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP],sS_forderiv[idxSC&1]))
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul(sPrev_phi[idxP],sS_forderiv[idxSC&1]))
+            else:
+                s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP],sS_forderiv[idxSC&1]))
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul("-"+sPrev_phi[idxP],sC_forderiv[idxSC&1]))
             else:
                 s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul(sPrev_phi[idxP],sC_forderiv[idxSC&1]))
-            s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP],sC_forderiv[idxSC&1]))
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul("-"+sPrev_theta[idxP],sC_forderiv[idxSC&1]))
+            else:
+                s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP],sC_forderiv[idxSC&1]))
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul("-"+sPrev_theta[idxP],sS_forderiv[idxSC&1]))
             else:
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul(sPrev_theta[idxP],sS_forderiv[idxSC&1]))
@@ -245,18 +266,27 @@ def BuildSHEvalCode(lmax):
                 s_output += sPrev_theta[idxP] + " = " + sRuleDeriv(l,m,sPrev[idxP],sPrev[(idxP-1)%3]) + ";\n"
                 if m == 1:
                     s_output += sAssignDeriv(sdSHdthetaIndex(idxC-1),sRuleDeriv_1(l,sPrev[idxP]))
-            s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP],sC[idxSC&1])) + ";\n"
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssign(sSHIndex(idxC),sMul("-"+sPrev[idxP],sC[idxSC&1])) + ";\n"
+            else:
+                s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP],sC[idxSC&1])) + ";\n"
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssign(sSHIndex(idxS),sMul("-"+sPrev[idxP],sS[idxSC&1])) + ";\n"
             else:
                 s_output += sAssign(sSHIndex(idxS),sMul(sPrev[idxP],sS[idxSC&1])) + ";\n"
-            s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP],sS_forderiv[idxSC&1]))
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul(sPrev_phi[idxP],sS_forderiv[idxSC&1]))
+            else:
+                s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP],sS_forderiv[idxSC&1]))
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul("-"+sPrev_phi[idxP],sC_forderiv[idxSC&1]))
             else:
                 s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul(sPrev_phi[idxP],sC_forderiv[idxSC&1]))
-            s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP],sC_forderiv[idxSC&1]))
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssignDeriv(sdSHdthetaIndex(idxC),"-"+sMul(sPrev_theta[idxP],sC_forderiv[idxSC&1]))
+            else:
+                s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP],sC_forderiv[idxSC&1]))
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul("-"+sPrev_theta[idxP],sS_forderiv[idxSC&1]))
             else:
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul(sPrev_theta[idxP],sS_forderiv[idxSC&1]))
@@ -271,18 +301,27 @@ def BuildSHEvalCode(lmax):
                 s_output += sPrev_theta[idxP%3] + " = " + sRuleDeriv(l,m,sPrev[idxP%3],sPrev[(idxP-1)%3]) + ";\n"
                 if m == 1:
                     s_output += sAssignDeriv(sdSHdthetaIndex(idxC-1),sRuleDeriv_1(l,sPrev[idxP%3]))
-            s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP%3],sC[idxSC&1])) + ";\n"
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssign(sSHIndex(idxC),sMul("-"+sPrev[idxP%3],sC[idxSC&1])) + ";\n"
+            else:
+                s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP%3],sC[idxSC&1])) + ";\n"
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssign(sSHIndex(idxS),sMul("-"+sPrev[idxP%3],sS[idxSC&1])) + ";\n"
             else:
                 s_output += sAssign(sSHIndex(idxS),sMul(sPrev[idxP%3],sS[idxSC&1])) + ";\n"
-            s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP%3],sS_forderiv[idxSC&1]))
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul(sPrev_phi[idxP%3],sS_forderiv[idxSC&1]))
+            else:
+                s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP%3],sS_forderiv[idxSC&1]))
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul("-"+sPrev_phi[idxP%3],sC_forderiv[idxSC&1]))
             else:
                 s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul(sPrev_phi[idxP%3],sC_forderiv[idxSC&1]))
-            s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP%3],sC_forderiv[idxSC&1]))
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul("-"+sPrev_theta[idxP%3],sC_forderiv[idxSC&1]))
+            else:
+                s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP%3],sC_forderiv[idxSC&1]))
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul("-"+sPrev_theta[idxP%3],sS_forderiv[idxSC&1]))
             else:
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul(sPrev_theta[idxP%3],sS_forderiv[idxSC&1]))
@@ -296,18 +335,27 @@ def BuildSHEvalCode(lmax):
                 s_output += sPrev_theta[idxP%3] + " = " + sRuleDeriv(l,m,sPrev[idxP%3],sPrev[(idxP-1)%3]) + ";\n"
                 if m == 1:
                     s_output += sAssignDeriv(sdSHdthetaIndex(idxC-1),sRuleDeriv_1(l,sPrev[idxP%3]))
-            s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP%3],sC[idxSC&1])) + ";\n"
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssign(sSHIndex(idxC),sMul("-"+sPrev[idxP%3],sC[idxSC&1])) + ";\n"
+            else:
+                s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP%3],sC[idxSC&1])) + ";\n"
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssign(sSHIndex(idxS),sMul("-"+sPrev[idxP%3],sS[idxSC&1])) + ";\n"
             else:
                 s_output += sAssign(sSHIndex(idxS),sMul(sPrev[idxP%3],sS[idxSC&1])) + ";\n"
-            s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP%3],sS_forderiv[idxSC&1]))
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul(sPrev_phi[idxP%3],sS_forderiv[idxSC&1]))
+            else:
+                s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP%3],sS_forderiv[idxSC&1]))
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul("-"+sPrev_phi[idxP%3],sC_forderiv[idxSC&1]))
             else:
                 s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul(sPrev_phi[idxP%3],sC_forderiv[idxSC&1]))
-            s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP%3],sC_forderiv[idxSC&1]))
-            if (m%2 == 1) and (PHASE=="aims"):
+            if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+                s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul("-"+sPrev_theta[idxP%3],sC_forderiv[idxSC&1]))
+            else:
+                s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP%3],sC_forderiv[idxSC&1]))
+            if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul("-"+sPrev_theta[idxP%3],sS_forderiv[idxSC&1]))
             else:
                 s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul(sPrev_theta[idxP%3],sS_forderiv[idxSC&1]))
@@ -334,18 +382,27 @@ def BuildSHEvalCode(lmax):
         s_output += sPrev_theta[idxP] + " = " + sRuleDeriv(l,m,sPrev[idxP%3],sPrev[(idxP-1)%3]) + ";\n"
         if m == 1:
             s_output += sAssignDeriv(sdSHdthetaIndex(idxC-1),sRuleDeriv_1(l,sPrev[idxP]))
-    s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP],sC[idxSC&1])) + ";\n"
-    if (m%2 == 1) and (PHASE=="aims"):
+    if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+        s_output += sAssign(sSHIndex(idxC),sMul("-"+sPrev[idxP],sC[idxSC&1])) + ";\n"
+    else:
+        s_output += sAssign(sSHIndex(idxC),sMul(sPrev[idxP],sC[idxSC&1])) + ";\n"
+    if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
         s_output += sAssign(sSHIndex(idxS),sMul("-"+sPrev[idxP],sS[idxSC&1])) + ";\n"
     else:
         s_output += sAssign(sSHIndex(idxS),sMul(sPrev[idxP],sS[idxSC&1])) + ";\n"
-    s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP],sS_forderiv[idxSC&1]))
-    if (m%2 == 1) and (PHASE=="aims"):
+    if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+        s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul(sPrev_phi[idxP],sS_forderiv[idxSC&1]))
+    else:
+        s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxC),sMul("-"+sPrev_phi[idxP],sS_forderiv[idxSC&1]))
+    if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
         s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul("-"+sPrev_phi[idxP],sC_forderiv[idxSC&1]))
     else:
         s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idxS),sMul(sPrev_phi[idxP],sC_forderiv[idxSC&1]))
-    s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP],sC_forderiv[idxSC&1]))
-    if (m%2 == 1) and (PHASE=="aims"):
+    if (m%2 == 1) and (PHASE=="Condon–Shortley"):
+        s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul("-"+sPrev_theta[idxP],sC_forderiv[idxSC&1]))
+    else:
+        s_output += sAssignDeriv(sdSHdthetaIndex(idxC),sMul(sPrev_theta[idxP],sC_forderiv[idxSC&1]))
+    if (m%2 == 1) and (PHASE=="aims" or PHASE=="Condon–Shortley"):
         s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul("-"+sPrev_theta[idxP],sS_forderiv[idxSC&1]))
     else:
         s_output += sAssignDeriv(sdSHdthetaIndex(idxS),sMul(sPrev_theta[idxP],sS_forderiv[idxSC&1]))
