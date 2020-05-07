@@ -6,10 +6,11 @@ l = Symbol('l', integer=True)
 m = Symbol('m', integer=True)
 x = Symbol('x')
 ######
-PRECISION="single" # "single" "double" "quadruple"
-LANGUAGE="Fortran" # "c++" "Fortran"
+PRECISION="double" # "single" "double" "quadruple"
+LANGUAGE="Fortran" # "Fortran" "c++" "c++avx2" "c++avx512"
 DO_DERIV=True
-PHASE="Condon–Shortley" # "aims" "Condon–Shortley" None
+PHASE="aims" # "aims" "Condon–Shortley" None
+TOTAL_LMAX=20
 ######
 
 def Klm(l,m):
@@ -28,7 +29,7 @@ def sConst(d):
             return str(N(d,precision))+"d0"
         if PRECISION=="quadruple":
             precision = 36
-            return str(N(q,precision))+"d0"
+            return str(N(d,precision))+"q0"
     else:
         return str(N(d,precision))
 def sMul(s1,s2):
@@ -488,5 +489,5 @@ def BuildSHEvalall(l_max):
     s_output_all += BuildSHEvalinterface(l_max)
     return s_output_all
 
-print(BuildSHEvalall(20))
+print(BuildSHEvalall(TOTAL_LMAX))
 
