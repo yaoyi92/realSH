@@ -1,16 +1,50 @@
 #!/usr/bin/env python
+import argparse
 from sympy import N
 from sympy import sqrt, factorial, factorial2, pi
 from sympy import Symbol
 l = Symbol('l', integer=True)
 m = Symbol('m', integer=True)
 x = Symbol('x')
-######
-PRECISION="double" # "single" "double" "quadruple"
-LANGUAGE="Fortran" # "Fortran" "c++" "c++avx2" "c++avx512"
-DO_DERIV=True
-PHASE="aims" # "aims" "Condon–Shortley" None
-TOTAL_LMAX=20
+
+parser = argparse.ArgumentParser(description='efficient real spherical harmonics (Ylm) code generator')
+parser.add_argument('--language_type',type=str,default="c++",help='language and type of the code')
+parser.add_argument('--do_deriv',type=bool,default=False,help='do also derivatives of Ylm')
+parser.add_argument('--phase',type=str,default="aims",help='type of phase for Ylm')
+parser.add_argument('--total_lmax',type=int,default=3,help='largest lmax to be generated')
+args = parser.parse_args()
+
+list_language_type = {"Fortran_single":("Fortran","single","normal"),\
+                      "Fortran_double":("Fortran","double","normal"),\
+                      "Fortran_quadruple":("Fortran","quadruple","normal"),\
+                      "c++":("c++","double","normal"),\
+                      "c++_avx2":("c++","double","avx2"),\
+                      "c++_avx512":("c++","double","avx512")}
+list_phase = ["aims","Condon-Shortley","None"]
+
+assert (args.language_type in list_language_type)
+assert (args.phase in list_phase)
+
+LANGUAGE = list_language_type[args.language_type][0]
+PRECISION = list_language_type[args.language_type][1]
+VECTORIZATION = list_language_type[args.language_type][2]
+DO_DERIV = args.do_deriv
+PHASE = args.phase
+TOTAL_LMAX = args.total_lmax
+print(" #", "LANGUAGE =", LANGUAGE, "\n", \
+      "#", "PRECISION =", PRECISION, "\n",\
+      "#", "VECTORIZATION =",VECTORIZATION, "\n",\
+      "#", "DO_DERIV =",DO_DERIV, "\n",\
+      "#", "PHASE =", PHASE, "\n",\
+      "#", "TOTAL_LMAX =", TOTAL_LMAX, "\n",)
+
+###### use argparse for input
+#PRECISION="double" # "single" "double" "quadruple"
+#LANGUAGE="Fortran" # "Fortran" "c++" "c++avx2" "c++avx512"
+#VECTORIZATION="normal" # "normal", "avx2", avx512"
+#DO_DERIV=True
+#PHASE="aims" # "aims" "Condon–Shortley" None
+#TOTAL_LMAX=2
 ######
 
 def Klm(l,m):
