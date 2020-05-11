@@ -7,20 +7,21 @@ l = Symbol('l', integer=True)
 m = Symbol('m', integer=True)
 x = Symbol('x')
 
-parser = argparse.ArgumentParser(description='efficient real spherical harmonics (Ylm) code generator')
-parser.add_argument('--language_type',type=str,default="c++",help='language and type of the code')
-parser.add_argument('--do_deriv',type=bool,default=False,help='do also derivatives of Ylm')
-parser.add_argument('--phase',type=str,default="aims",help='type of phase for Ylm')
-parser.add_argument('--total_lmax',type=int,default=3,help='largest lmax to be generated')
-args = parser.parse_args()
-
 list_language_type = {"Fortran_single":("Fortran","single","normal"),\
                       "Fortran_double":("Fortran","double","normal"),\
                       "Fortran_quadruple":("Fortran","quadruple","normal"),\
                       "c++":("c++","double","normal"),\
-                      "c++_avx2":("c++","double","avx2"),\
-                      "c++_avx512":("c++","double","avx512")}
+                      "c++_avx2":("c++","double","AVX2"),\
+                      "c++_avx512":("c++","double","AVX512")}
 list_phase = ["aims","Condon-Shortley","None"]
+
+parser = argparse.ArgumentParser(description='efficient real spherical harmonics (Ylm) code generator')
+parser.add_argument('--language_type',type=str,default="c++",help='language and type of the code:('+",".join(list_language_type)+")")
+parser.add_argument('--do_deriv',type=bool,default=False,help='do also derivatives of Ylm:(True/False)')
+parser.add_argument('--phase',type=str,default="aims",help='type of phase for Ylm:('+",".join(list_phase)+")")
+parser.add_argument('--total_lmax',type=int,default=3,help='largest lmax to be generated')
+args = parser.parse_args()
+
 
 assert (args.language_type in list_language_type)
 assert (args.phase in list_phase)
@@ -31,12 +32,18 @@ VECTORIZATION = list_language_type[args.language_type][2]
 DO_DERIV = args.do_deriv
 PHASE = args.phase
 TOTAL_LMAX = args.total_lmax
-print(" #", "LANGUAGE =", LANGUAGE, "\n", \
-      "#", "PRECISION =", PRECISION, "\n",\
-      "#", "VECTORIZATION =",VECTORIZATION, "\n",\
-      "#", "DO_DERIV =",DO_DERIV, "\n",\
-      "#", "PHASE =", PHASE, "\n",\
-      "#", "TOTAL_LMAX =", TOTAL_LMAX, "\n",)
+
+def comment():
+    if LANGUAGE == "Fortran":
+        return "!"
+    else:
+        return "//"
+print(" "+comment(), "LANGUAGE =", LANGUAGE, "\n", \
+      comment(), "PRECISION =", PRECISION, "\n",\
+      comment(), "VECTORIZATION =",VECTORIZATION, "\n",\
+      comment(), "DO_DERIV =",DO_DERIV, "\n",\
+      comment(), "PHASE =", PHASE, "\n",\
+      comment(), "TOTAL_LMAX =", TOTAL_LMAX, "\n",)
 
 ###### use argparse for input
 #PRECISION="double" # "single" "double" "quadruple"
@@ -64,48 +71,112 @@ def sConst(d):
         if PRECISION=="quadruple":
             precision = 36
             return str(N(d,precision))+"q0"
-    else:
-        return str(N(d,precision))
+    elif LANGUAGE == "c++":
+        str_val = str(N(d,precision))
+        if VECTORIZATION == "normal":
+            return str(N(d,precision))
+        elif VECTORIZATION == "AVX2":
+            return "_mm256_set_pd("+",".join([str_val]*4)+")"
+        elif VECTORIZATION == "AVX512":
+            return "_mm512_set_pd("+",".join([str_val]*8)+")"
+
 def sMul(s1,s2):
-    return s1 + "*" + s2
+    if VECTORIZATION == "normal":
+        return s1 + "*" + s2
+    elif VECTORIZATION == "AVX2":
+        return "_mm256_mul_pd(" + s1 + "," + s2 + ")"
+    elif VECTORIZATION == "AVX512":
+        return "_mm512_mul_pd(" + s1 + "," + s2 + ")"
+
 def sAdd(s1,s2):
-    return s1 + "+" + s2
+    if VECTORIZATION == "normal":
+        return s1 + "+" + s2
+    elif VECTORIZATION == "AVX2":
+        return "_mm256_add_pd(" + s1 + "," + s2 + ")"
+    elif VECTORIZATION == "AVX512":
+        return "_mm512_add_pd(" + s1 + "," + s2 + ")"
+
 def sSub(s1,s2):
-    return s1 + "-" + s2
+    if VECTORIZATION == "normal":
+        return s1 + "-" + s2
+    elif VECTORIZATION == "AVX2":
+        return "_mm256_sub_pd(" + s1 + "," + s2 + ")"
+    elif VECTORIZATION == "AVX512":
+        return "_mm512_sub_pd(" + s1 + "," + s2 + ")"
+
 def sAssign(sVar, sRHS):
-    return sVar + " = " + sRHS
+    if VECTORIZATION == "normal":
+        return sVar + "=" + sRHS
+    elif VECTORIZATION == "AVX2":
+        return "_mm256_store_pd(" + sVar + "," + sRHS + ")"
+    elif VECTORIZATION == "AVX512":
+        return "_mm512_store_pd(" + sVar + "," + sRHS + ")"
+
 def sAssignDeriv(sVar, sRHS):
     if (DO_DERIV):
-        return sVar + " = " + sRHS + ";\n"
+        if VECTORIZATION == "normal":
+            return sVar + "=" + sRHS
+        elif VECTORIZATION == "AVX2":
+            return "_mm256_store_pd(" + sVar + "," + sRHS + ")"
+        elif VECTORIZATION == "AVX512":
+            return "_mm512_store_pd(" + sVar + "," + sRHS + ")"
     else:
         return ""
+
 def sSHIndex(idx):
     if LANGUAGE=="Fortran":
         return "pSH(" + str(idx+1) + ")"
-    else:
-        return "pSH[" + str(idx) + "]"
+    elif LANGUAGE=="c++":
+        if VECTORIZATION == "normal":
+            return "pSH[" + str(idx) + "]"
+        if VECTORIZATION == "AVX2":
+            return "pSH + " + str(idx) + "*4"
+        if VECTORIZATION == "AVX512":
+            return "pSH + " + str(idx) + "*8"
+
 def sdSHdphi_sinthetaIndex(idx):
     if LANGUAGE=="Fortran":
         return "pdSHdphi_sintheta(" + str(idx+1) + ")"
-    else:
-        return "pdSHdphi_sintheta[" + str(idx) + "]"
+    elif LANGUAGE=="c++":
+        if VECTORIZATION == "normal":
+            return "pdSHdphi_sintheta[" + str(idx) + "]"
+        if VECTORIZATION == "AVX2":
+            return "pdSHdphi_sintheta + " + str(idx) + "*4"
+        if VECTORIZATION == "AVX512":
+            return "pdSHdphi_sintheta + " + str(idx) + "*8"
+
 def sdSHdthetaIndex(idx):
     if LANGUAGE=="Fortran":
         return "pdSHdtheta(" + str(idx+1) + ")"
-    else:
-        return "pdSHdtheta[" + str(idx) + "]"
+    elif LANGUAGE=="c++":
+        if VECTORIZATION == "normal":
+            return "pdSHdtheta[" + str(idx) + "]"
+        if VECTORIZATION == "AVX2":
+            return "pdSHdtheta + " + str(idx) + "*4"
+        if VECTORIZATION == "AVX512":
+            return "pdSHdtheta + " + str(idx) + "*8"
+
+def sAVXLoad(sAddr):
+    return "_mm256_load_pd(" + sAddr + ")"
+
+def sAVX512Load(sAddr):
+    return "_mm512_load_pd(" + sAddr + ")"
 
 def sRuleA(m,fVal):
     return sConst((Pmm(m)*Klm(m,m)*fVal))
+
 def sRuleB(m,fVal):
     return sMul(sConst(((2*m+1.0)*Pmm(m)*Klm(m+1,m)*fVal)),"fZ")
+
 def sRuleC(l,m,sPm1,sPm2):
     fA=Klm(l,m)/Klm(l-1,m)*(2*l-1)/(l-m)
     fB=-Klm(l,m)/Klm(l-2,m)*(l+m-1)/(l-m)
     return sAdd(sMul(sMul(sConst(fA),"fZ"),sPm1),sMul(sConst(fB),sPm2))
+
 def sRuleD(m,fVal):
     l = m + 2
     return sAdd(sMul(sConst(( (2*m+3)*(2*m+1)*Pmm(m)/2*Klm(l,m)*fVal )),"fZ2"),sConst((-1*(2*m+1)*  Pmm(m)/2*Klm(l,m)*fVal)))
+
 def sRuleE(m,fVal):
     l = m + 3
     Pu = Pmm(m)
@@ -113,6 +184,7 @@ def sRuleE(m,fVal):
     fB = -fVal*Klm(m+3,m)*((2*m+5)*(2*m+1)*Pu/6 + (2*m+2)*(2*m+1)*Pu/3)
     str_tmp = "(" + sAdd(sMul(sConst(fA),"fZ2"),sConst(fB)) + ")"
     return sMul("fZ",str_tmp)
+
 def sRuleDeriv(l,m,sPml,sPml_1):
     fml = l
     fml_1 = -(l+m)*Klm(l,m)/Klm(l-1,m)
@@ -122,30 +194,33 @@ def sRuleDeriv(l,m,sPml,sPml_1):
         return str_ml
     else:
         return sAdd(str_ml,str_ml_1)
+
 def sRuleDeriv_1(l,sPml):
     fml = Klm(l,0) / (sqrt(2) * Klm(l,1))
     return sMul(sMul(sConst(fml),"sintheta"),sPml)
 
 def sCreateSinReccur(sCL,sSL):
     return sAdd(sMul("fX",sSL),sMul("fY",sCL))
+
 def sCreateCosReccur(sCL,sSL):
     return sSub(sMul("fX",sCL),sMul("fY",sSL))
 
-def comment():
-    if LANGUAGE == "Fortran":
-        return "!"
-    else:
-        return "//"
+
 def datatype():
     if LANGUAGE == "Fortran":
         if PRECISION == "double":
-            return "real*8"
+            return "real*8 "
         if PRECISION == "single":
-            return "real*4"
+            return "real*4 "
         if PRECISION == "quadruple":
-            return "real*16"
-    else:
-        return "double"
+            return "real*16 "
+    elif LANGUAGE == "c++":
+        if VECTORIZATION == "normal":
+            return "double "
+        if VECTORIZATION == "AVX2":
+            return "__m256d "
+        if VECTORIZATION == "AVX512":
+            return "__m512d "
 
 def BuildSHEvalCode(lmax):
     s_output = ""
@@ -160,11 +235,17 @@ def BuildSHEvalCode(lmax):
         if DO_DERIV:
             s_output += datatype() + ", intent(out) :: pdSHdtheta(" + str((lmax+1)*(lmax+1)) + ")\n"
             s_output += datatype() + ", intent(out) :: pdSHdphi_sintheta(" + str((lmax+1)*(lmax+1)) + ")\n"
-    else:
-        if DO_DERIV:
-            s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
-        else:
-            s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH)\n{\n"
+    elif LANGUAGE == "c++":
+        if VECTORIZATION == "normal":
+            if DO_DERIV:
+                s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
+            else:
+                s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH)\n{\n"
+        elif (VECTORIZATION == "AVX2") or (VECTORIZATION == "AVX512"):
+            if DO_DERIV:
+                s_output += "void SHEval" + str(lmax) + "(const double *sintheta, const double *costheta, const double *sinphi, const double *cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
+            else:
+                s_output += "void SHEval" + str(lmax) + "(const double *sintheta, const double *costheta, const double *sinphi, const double *cosphi, double *pSH)\n{\n"
     if (lmax > 0):
         if LANGUAGE == "Fortran":
             s_output += datatype() + " :: fX, fY, fZ\n"
@@ -172,20 +253,23 @@ def BuildSHEvalCode(lmax):
             s_output += datatype() + " :: fC0_1,fC1_1,fS0_1,fS1_1,fTmpA_1,fTmpB_1,fTmpC_1\n"
             s_output += datatype() + " :: fTmpA_2,fTmpB_2,fTmpC_2\n"
             s_output += datatype() + " :: fZ2 \n"
-        else:
+        elif LANGUAGE == "c++":
             s_output += datatype() +" fX, fY, fZ;\n"
             s_output += datatype() +" fC0,fC1,fS0,fS1,fTmpA,fTmpB,fTmpC;\n"
             s_output += datatype() +" fC0_1,fC1_1,fS0_1,fS1_1,fTmpA_1,fTmpB_1,fTmpC_1;\n"
             s_output += datatype() +" fTmpA_2,fTmpB_2,fTmpC_2;\n"
-        s_output += "fX = sintheta * cosphi;\n"
-        s_output += "fY = sintheta * sinphi;\n"
-        s_output += "fZ = costheta;\n"
+        #s_output += "fX = sintheta * cosphi;\n"
+        #s_output += "fY = sintheta * sinphi;\n"
+        #s_output += "fZ = costheta;\n"
+        s_output += sAssign("fX", sMul("sintheta",  "cosphi"))+";\n"
+        s_output += sAssign("fY", sMul("sintheta",  "sinphi"))+";\n"
+        s_output += sAssign("fZ", "costheta")+";\n"
 
     if (lmax >= 2):
         if LANGUAGE == "Fortran":
             s_output += "fZ2 = fZ*fZ;\n\n"
         else:
-            s_output += datatype() + " fZ2 = fZ*fZ;\n\n"
+            s_output += datatype() + sAssign("fZ2",sMul("fZ","fZ"))+ ";\n\n"
     else:
         s_output += "\n"
 
@@ -218,6 +302,12 @@ def BuildSHEvalCode(lmax):
         sPm1 = sSHIndex((l-1)*(l-1)+(l-1))
         sPm2 = sSHIndex((l-2)*(l-2)+(l-2))
         idx = l*l+l
+        if VECTORIZATION == "AVX2":
+            sPm1 = sAVXLoad(sPm1)
+            sPm2 = sAVXLoad(sPm2)
+        if VECTORIZATION == "AVX512":
+            sPm1 = sAVX512Load(sPm1)
+            sPm2 = sAVX512Load(sPm2)
         s_output += sAssign(sSHIndex(idx), sRuleC(l,m,sPm1,sPm2)) + ";\n"
         s_output += sAssignDeriv(sdSHdphi_sinthetaIndex(idx),sConst(0))
 
@@ -479,11 +569,22 @@ def BuildSHEvalinterface(l_max):
         if DO_DERIV:
             s_output_interface += datatype() + ", intent(inout) :: pdSHdtheta((lmax+1)*(lmax+1)) \n"
             s_output_interface += datatype() + ", intent(inout) :: pdSHdphi_sintheta((lmax+1)*(lmax+1)) \n"
-    else:
-        if DO_DERIV:
-            s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
-        else:
-            s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH) {\n"
+    elif LANGUAGE == "c++":
+        if VECTORIZATION == "normal":
+            if DO_DERIV:
+                s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
+            else:
+                s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH) {\n"
+        if VECTORIZATION == "AVX2":
+            if DO_DERIV:
+                s_output_interface += "void SHEvalAVX(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
+            else:
+                s_output_interface += "void SHEvalAVX(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH) {\n"
+        if VECTORIZATION == "AVX512":
+            if DO_DERIV:
+                s_output_interface += "void SHEvalAVX512(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
+            else:
+                s_output_interface += "void SHEvalAVX512(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH) {\n"
     for i in range(l_max+1):
         if (i == 0):
             if LANGUAGE == "Fortran":
