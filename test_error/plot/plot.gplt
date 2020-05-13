@@ -1,0 +1,22 @@
+set terminal postscript eps enhanced color size 3.5in,3.5in font "Helvetica,18"
+set xlabel "Index of Real Spherical Harmonics"
+set ylabel "Mean Absolute Error"
+
+set key left
+set yrange [:2.5e-15]
+set output 'error_aims.eps'
+p "mae_aims_old"   u 0:1 w l lw 2 lc "orange" title "aims old", \
+  "mae_aims_new"   u 0:1 w l lw 2 lc "red" title "aims new", \
+  "mae_SHEval"     u 0:1 w l lw 2 lc "black" title "SHEval"
+
+set output 'error_sirius.eps'
+p  "mae_sirius_gsl" u 0:1 w l lw 2 lc "green" title "SIRIUS GSL", \
+  "mae_sirius_opt" u 0:1 w l lw 2 lc "blue" title "SIRIUS OPT", \
+  "mae_SHEval"     u 0:1 w l lw 2 lc "black" title "SHEval"
+
+set output 'error_single_double_quadruple.eps'
+set yrange [1e-35:1]
+set logscale y
+p "mae_SHEval"           u 0:1 w l lw 4 lc "black" title "double precision", \
+  "mae_SHEval_single"    u 0:1 w l lw 4 lc "red" title "single precision", \
+  "mae_SHEval_quadruple" u 0:1 w l lw 4 lc "blue" title "quadruple precision", \
