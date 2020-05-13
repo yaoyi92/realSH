@@ -1,0 +1,30 @@
+set terminal postscript eps enhanced color size 3.5in,3.5in font "Helvetica,18"
+set xlabel "lmax for the set of real spherical harmonics"
+set ylabel "timing per set of evaluations (s)"
+
+set key left
+set logscale y
+set yrange [1e-9:1e-4]
+set output 'timing_aims.eps'
+p "result_timing"   u 0:3 w lp lw 2 pt 4 lc "orange" title "aims old", \
+  "result_timing"   u 0:4 w lp lw 2 pt 4 lc "red" title "aims new", \
+  "result_timing"   u 0:5 w lp lw 2 pt 4 lc "black" title "SHEval"
+
+set output 'timing_sirius.eps'
+p "result_timing" u 0:1 w lp lw 2 pt 4 lc "green" title "SIRIUS GSL", \
+  "result_timing" u 0:2 w lp lw 2 pt 4 lc "blue" title "SIRIUS OPT", \
+  "result_timing" u 0:5 w lp lw 2 pt 4 lc "black" title "SHEval"
+
+set output 'timing_fortran_c++.eps'
+p  "result_timing" u 0:5 w lp lw 2 pt 4 lc "black" title "SHEval Fortran", \
+   "result_timing" u 0:9 w lp lw 2 pt 4 lc "red" title "SHEval c++"
+
+set output 'timing_double_single_quadruple.eps'
+p  "result_timing" u 0:5 w lp lw 2 pt 4 lc "black" title "SHEval double", \
+   "result_timing" u 0:6 w lp lw 2 pt 4 lc "red" title "SHEval single", \
+   "result_timing" u 0:7 w lp lw 2 pt 4 lc "orange" title "SHEval quadruple"
+
+set output 'timing_avx.eps'
+p  "result_timing" u 0:9 w lp lw 2 pt 4 lc "black" title "SHEval", \
+   "result_timing" u 0:8 w lp lw 2 pt 4 lc "red" title "SHEval avx"
+

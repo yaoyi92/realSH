@@ -1,0 +1,5 @@
+# compile on hpstation
+icpc -O3 specfunc.cpp -c
+icpc -O3 SHEval_cpp.cpp -c
+icpc -O3 -xavx  SHEval_avx.cpp -c
+ifort -O3 SHEval_single.f90 SHEval_quadruple.f90 sqrttable.f90 increment_ylm_new.f90 increment_ylm.f90 SHEval.f90 run_test_mod.f90 test_time.f90 specfunc.o SHEval_avx.o SHEval_cpp.o -lgsl -lblas -lstdc++

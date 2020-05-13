@@ -1,0 +1,11 @@
+set key left
+#p "result_time2" u 0:1 w lp pt 4 lc "green" title "SIRIUS GSL", \
+#  "result_time2" u 0:2 w lp pt 4 lc "blue" title "SIRIUS OPT", \
+#  "result_time2" u 0:3 w lp pt 4 lc "orange" title "aims old", \
+#  "result_time2" u 0:4 w lp pt 4 lc "red" title "aims new", \
+#  "result_time2" u 0:5 w lp pt 4 lc "black" title "SHEval"
+
+set logscale y
+p  "result_time3" u 0:5 w lp pt 4 lc "black" title "SHEval", \
+   "result_time3" u 0:6 w lp pt 4 lc "red" title "SHEval single", \
+   "result_time3" u 0:7 w lp pt 4 lc "blue" title "SHEval quadruple", \
