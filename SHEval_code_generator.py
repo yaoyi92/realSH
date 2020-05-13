@@ -166,7 +166,7 @@ def sRuleA(m,fVal):
     return sConst((Pmm(m)*Klm(m,m)*fVal))
 
 def sRuleB(m,fVal):
-    return sMul(sConst(((2*m+1.0)*Pmm(m)*Klm(m+1,m)*fVal)),"fZ")
+    return sMul(sConst(((2*m+1)*Pmm(m)*Klm(m+1,m)*fVal)),"fZ")
 
 def sRuleC(l,m,sPm1,sPm2):
     fA=Klm(l,m)/Klm(l-1,m)*(2*l-1)/(l-m)
@@ -226,9 +226,9 @@ def BuildSHEvalCode(lmax):
     s_output = ""
     if LANGUAGE == "Fortran":
         if DO_DERIV:
-            s_output += "subroutine SHEvalderiv" + str(lmax) + "(sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta)\n"
+            s_output += "subroutine SHEvalderiv"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE + str(lmax) + "(sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta)\n"
         else:
-            s_output += "subroutine SHEval" + str(lmax) + "(sintheta,costheta,sinphi,cosphi,pSH)\n"
+            s_output += "subroutine SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE + str(lmax) + "(sintheta,costheta,sinphi,cosphi,pSH)\n"
         s_output += "implicit none\n"
         s_output += datatype() + ", intent(in) :: sintheta, costheta, sinphi, cosphi\n"
         s_output += datatype() + ", intent(out) :: pSH(" + str((lmax+1)*(lmax+1)) + ")\n"
@@ -238,14 +238,14 @@ def BuildSHEvalCode(lmax):
     elif LANGUAGE == "c++":
         if VECTORIZATION == "normal":
             if DO_DERIV:
-                s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
+                s_output += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+ str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
             else:
-                s_output += "void SHEval" + str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH)\n{\n"
+                s_output += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+ str(lmax) +     "(const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH)\n{\n"
         elif (VECTORIZATION == "AVX2") or (VECTORIZATION == "AVX512"):
             if DO_DERIV:
-                s_output += "void SHEval" + str(lmax) + "(const double *sintheta, const double *costheta, const double *sinphi, const double *cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
+                s_output += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE + str(lmax) + "(const double *sintheta, const double *costheta, const double *sinphi, const double *cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta)\n{\n"
             else:
-                s_output += "void SHEval" + str(lmax) + "(const double *sintheta, const double *costheta, const double *sinphi, const double *cosphi, double *pSH)\n{\n"
+                s_output += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE + str(lmax) + "(const double *sintheta, const double *costheta, const double *sinphi, const double *cosphi, double *pSH)\n{\n"
     if (lmax > 0):
         if LANGUAGE == "Fortran":
             s_output += datatype() + " :: fX, fY, fZ\n"
@@ -559,9 +559,9 @@ def BuildSHEvalinterface(l_max):
     s_output_interface = ""
     if LANGUAGE == "Fortran":
         if DO_DERIV:
-            s_output_interface += "subroutine SHEvalderiv(lmax,sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta) \n"
+            s_output_interface += "subroutine SHEvalderiv"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+"(lmax,sintheta,costheta,sinphi,cosphi,pSH,pdSHdtheta,pdSHdphi_sintheta) \n"
         else:
-            s_output_interface += "subroutine SHEval(lmax,sintheta,costheta,sinphi,cosphi,pSH) \n"
+            s_output_interface += "subroutine SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+"(lmax,sintheta,costheta,sinphi,cosphi,pSH) \n"
         s_output_interface += "implicit none \n"
         s_output_interface += "integer, intent(in) :: lmax \n"
         s_output_interface += datatype() + ", intent(in) :: sintheta,costheta,sinphi,cosphi \n"
@@ -572,19 +572,19 @@ def BuildSHEvalinterface(l_max):
     elif LANGUAGE == "c++":
         if VECTORIZATION == "normal":
             if DO_DERIV:
-                s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
+                s_output_interface += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+"(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
             else:
-                s_output_interface += "void SHEval(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH) {\n"
+                s_output_interface += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+"(const int lmax, const double sintheta, const double costheta, const double sinphi, const double cosphi, double *pSH) {\n"
         if VECTORIZATION == "AVX2":
             if DO_DERIV:
-                s_output_interface += "void SHEvalAVX(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
+                s_output_interface += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+"(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
             else:
-                s_output_interface += "void SHEvalAVX(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH) {\n"
+                s_output_interface += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+"(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH) {\n"
         if VECTORIZATION == "AVX512":
             if DO_DERIV:
-                s_output_interface += "void SHEvalAVX512(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
+                s_output_interface += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+"(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH, double *pdSHdtheta, double *pdSHdphi_sintheta) {\n"
             else:
-                s_output_interface += "void SHEvalAVX512(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH) {\n"
+                s_output_interface += "void SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+"(const int lmax, const double *sintheta, const double *costheta,   const double *sinphi, const double *cosphi, double *pSH) {\n"
     for i in range(l_max+1):
         if (i == 0):
             if LANGUAGE == "Fortran":
@@ -598,14 +598,14 @@ def BuildSHEvalinterface(l_max):
                 s_output_interface += "} else if (lmax == " + str(i) + ")  { \n"
         if LANGUAGE == "Fortran":
             if DO_DERIV:
-                s_output_interface += "call SHEvalderiv" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH, pdSHdtheta, pdSHdphi_sintheta) \n"
+                s_output_interface += "call SHEvalderiv"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+  str(i) + "(sintheta, costheta, sinphi, cosphi, pSH, pdSHdtheta, pdSHdphi_sintheta) \n"
             else:
-                s_output_interface += "call SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH) \n"
+                s_output_interface += "call SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE+  str(i) + "(sintheta, costheta, sinphi, cosphi, pSH) \n"
         else:
             if DO_DERIV:
-                s_output_interface += "SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH, pdSHdtheta, pdSHdphi_sintheta); \n"
+                s_output_interface += "SHEvalderiv"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH, pdSHdtheta, pdSHdphi_sintheta); \n"
             else:
-                s_output_interface += "SHEval" + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH); \n"
+                s_output_interface += "SHEval"+LANGUAGE[0]+PRECISION[0]+VECTORIZATION+PHASE + str(i) + "(sintheta, costheta, sinphi, cosphi, pSH); \n"
         if (i==l_max):
             if LANGUAGE == "Fortran":
                 s_output_interface += "end if\n"
