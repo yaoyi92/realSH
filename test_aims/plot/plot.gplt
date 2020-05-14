@@ -1,0 +1,9 @@
+set terminal postscript eps enhanced color size 3.5in,3.5in font "Helvetica,18"
+set ylabel "timing for electrostatic potential(s)"
+set xlabel "l Hartree"
+
+set key left
+set output 'timing_aims_ala20_hartree.eps'
+p "timing_ala20_lhartree"   u 1:2 w lp lw 2 pt 4 lc "red" title "aims original", \
+  "timing_ala20_lhartree"   u 1:4 w lp lw 2 pt 4 lc "black" title "SHEval"
+

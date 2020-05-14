@@ -1,0 +1,8 @@
+ # 2 x Intel(R) Xeon(R) CPU E5-2670 0 @ 2.60GHz
+ # 16 cores
+ # Hartree multipole sum
+ #  old code  new code   SHEval code
+ 6  168.616   148.371    138.633
+ 8  229.714   190.540    173.482
+ 10 276.312   216.441    191.444
+ 16 466.429   324.217    261.920
