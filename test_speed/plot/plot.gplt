@@ -4,7 +4,7 @@ set ylabel "timing per set of evaluations (s)"
 
 set key left
 set logscale y
-set yrange [1e-9:1e-4]
+set yrange [1e-10:1e-4]
 set output 'timing_aims.eps'
 p "result_timing"   u 0:3 w lp lw 2 pt 4 lc "orange" title "aims old", \
   "result_timing"   u 0:4 w lp lw 2 pt 4 lc "red" title "aims new", \
@@ -25,6 +25,12 @@ p  "result_timing" u 0:5 w lp lw 2 pt 4 lc "black" title "SHEval double", \
    "result_timing" u 0:7 w lp lw 2 pt 4 lc "orange" title "SHEval quadruple"
 
 set output 'timing_avx.eps'
-p  "result_timing" u 0:9 w lp lw 2 pt 4 lc "black" title "SHEval", \
-   "result_timing" u 0:8 w lp lw 2 pt 4 lc "red" title "SHEval avx"
+p  "result_timing" u 0:9 w lp lw 2 pt 4 lc "black" title "SHEval E5-2670", \
+   "result_timing" u 0:8 w lp lw 2 pt 4 lc "red" title "SHEval avx E5-2670", \
+   "result_timing_2" u 0:9 w lp lw 2 pt 5 lc "black" title "SHEval E5-2699A v4", \
+   "result_timing_2" u 0:8 w lp lw 2 pt 5 lc "red" title "SHEval avx E5-2699A v4"
 
+set output 'timing_avx_2.eps'
+p  "result_timing_2" u 0:9 w lp lw 2 pt 4 lc "black" title "SHEval Gold 6148", \
+   "result_timing_2" u 0:8 w lp lw 2 pt 4 lc "red" title "SHEval avx Gold 6148", \
+   "result_timing_2" u 0:10 w lp lw 2 pt 4 lc "blue" title "SHEval avx512 Gold 6148"
